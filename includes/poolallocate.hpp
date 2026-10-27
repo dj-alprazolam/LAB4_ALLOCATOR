@@ -1,88 +1,91 @@
-#pragma once 
-#include<vector>
+#pragma once
+#include <vector>
 #include <cstddef>
-#include<memory>
-#include<new>
-#include<stdexcept>
+#include <memory>
+#include <new>
+#include <stdexcept>
 
-
-template<typename T, size_t Block_size = 10> 
+template <typename T, size_t Block_size = 10>
 class poolallocate
 {
 private:
-struct Pool
-{
-    struct freenode
+    struct Pool
     {
-        freenode* next;
-    };
-    freenode* free = nullptr;
-    std::vector<void*> allocatebBlock;
-    Pool() = default;
-    ~Pool(){
-        for (void* block: allocatebBlock)
+        struct freenode
         {
-            ::operator delete(block);
-        }
-        
-    }
+            freenode *next;
+        };
+        freenode *free_list = nullptr; // Переименовано, чтобы не конфликтовать с функцией free()
+        std::vector<void *> allocatebBlock;
 
-    void *allocate(size_t n)
-    {
-        if (n != 1)
+        Pool() = default;
+        ~Pool()
         {
-            void* p = ::operator new(n * sizeof(T));
-            allocatebBlock.push_back(p);
-            return p;
-        }
-
-        if (free == nullptr)
-        {
-            size_t  allocateSize = Block_size * sizeof(T);
-            void* new_block= ::operator new(allocateSize);
-            allocatebBlock.push_back(new_block);
-
-            char* ptr = static_cast<char*>(new_block);
-            for (size_t i = 0; i <Block_size; ++i)
+            for (void *block : allocatebBlock)
             {
-                freenode* node = reinterpret_cast<freenode*>(ptr + i * sizeof(T));
-                node-> next = free;
-                free = node;
-
+                ::operator delete(block);
             }
-            
         }
-        freenode* node = free;
-        free = free -> next;
-        return node;
-    }
 
-    void dellalocate(void* p, size_t n){
-        if (n != 1)
+        void *allocate(size_t n)
         {
-            ::operator delete(p);
-            return;
+            if (n != 1)
+            {
+                void *p = ::operator new(n * sizeof(T));
+                allocatebBlock.push_back(p);
+                return p;
+            }
+
+            if (free_list == nullptr)
+            {
+                size_t allocateSize = Block_size * sizeof(T);
+                void *new_block = ::operator new(allocateSize);
+                allocatebBlock.push_back(new_block);
+
+                char *ptr = static_cast<char *>(new_block);
+                for (size_t i = 0; i < Block_size; ++i)
+                {
+                    freenode *node = reinterpret_cast<freenode *>(ptr + i * sizeof(T));
+                    node->next = free_list;
+                    free_list = node;
+                }
+            }
+            freenode *node = free_list;
+            free_list = free_list->next;
+            return node;
         }
-        freenode* node = static_cast<freenode*>(p);
-        node->next = free;
-        free = node;
-    }
 
+        void deallocate(void *p, size_t n)
+        { // Исправлена опечатка dellalocate
+            if (n != 1)
+            {
+                ::operator delete(p);
+                return;
+            }
+            freenode *node = static_cast<freenode *>(p);
+            node->next = free_list;
+            free_list = node;
+        }
+    };
 
-};  
-std::shared_ptr<Pool> pool_;
-
+    std::shared_ptr<Pool> pool_;
 
 public:
     using value_type = T;
-    template<typename T>
+
+    template <typename U, size_t B>
+    friend class poolallocate;
+
+    template <typename U>
     struct rebind
     {
-        using other = poolallocate<U,Block_size>;   
+        using other = poolallocate<U, Block_size>;
     };
 
+    poolallocate() : pool_(std::make_shared<Pool>()) {} // Добавлен конструктор по умолчанию
 
-    poolallocate(const poolallocate<U, Block_size>& other) noexcept : pool_(other.pool_){}
+    template <typename U>
+    poolallocate(const poolallocate<U, Block_size> &other) noexcept : pool_(other.pool_) {}
 
     T *allocate(std::size_t n)
     {
@@ -94,18 +97,15 @@ public:
         pool_->deallocate(p, n);
     }
 
-  
     template <typename U>
-    bool operator==(const PoolAllocator<U, BlockSize> &other) const noexcept
+    bool operator==(const poolallocate<U, Block_size> &other) const noexcept
     {
         return pool_ == other.pool_;
     }
 
     template <typename U>
-    bool operator!=(const PoolAllocator<U, BlockSize> &other) const noexcept
+    bool operator!=(const poolallocate<U, Block_size> &other) const noexcept
     {
         return !(*this == other);
     }
 };
-
-
