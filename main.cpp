@@ -5,6 +5,10 @@
 #include"includes/random_list.hpp"
 #include<map>
 #include<random>
+#include<format>
+#include<print>
+#include <fmt/core.h> 
+#include <fmt/format.h>
 
 
 int main(int, char**){
@@ -13,9 +17,9 @@ int main(int, char**){
     using MapPoolAlloc = poolallocate<std::pair<const int, int>, 10>;
     std::map<int, int, std::less<int>, MapPoolAlloc> map2;
     random_map(map2,10);
-    for (const auto& pair : map2)
+    for (const auto& [key,value] : map2)
     {
-        std::cout << pair.first << " " << pair.second << std::endl;
+       fmt::print("{} {}\n", key, value);
     }
     forward_list<int> test_list;
     random_list(test_list,10);
@@ -26,9 +30,9 @@ int main(int, char**){
     random_list(list2,10);
     for (auto i = list2.begin(); i!=list2.end(); ++i)
     {
-        std::cout << *i << " ";
+        fmt::print("{} ", *i);
     }
-    std::cout << std::endl;
+    std::cout << "\n";
     
 
 }
