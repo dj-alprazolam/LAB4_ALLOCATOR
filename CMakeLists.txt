@@ -5,7 +5,5 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(LAB4 VERSION 0.1.0 LANGUAGES C CXX)
 
 find_package(fmt REQUIRED)
-
-include_directories(include)
 add_executable(LAB4 main.cpp)
 target_link_libraries(LAB4 PRIVATE fmt::fmt)
