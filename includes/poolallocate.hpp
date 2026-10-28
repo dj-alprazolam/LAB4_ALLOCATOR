@@ -15,7 +15,7 @@ private:
         {
             freenode *next;
         };
-        freenode *free_list = nullptr; // Переименовано, чтобы не конфликтовать с функцией free()
+        freenode *free_list = nullptr; 
         std::vector<void *> allocatebBlock;
 
         Pool() = default;
@@ -56,7 +56,7 @@ private:
         }
 
         void deallocate(void *p, size_t n)
-        { // Исправлена опечатка dellalocate
+        { 
             if (n != 1)
             {
                 ::operator delete(p);
@@ -82,7 +82,7 @@ public:
         using other = poolallocate<U, Block_size>;
     };
 
-    poolallocate() : pool_(std::make_shared<Pool>()) {} // Добавлен конструктор по умолчанию
+    poolallocate() : pool_(std::make_shared<Pool>()) {} 
 
     template <typename U>
     poolallocate(const poolallocate<U, Block_size> &other) noexcept : pool_(other.pool_) {}
